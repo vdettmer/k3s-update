@@ -1,0 +1,43 @@
+---
+# tasks file for k3s-update
+- name: Shutdown k3s
+  ansible.builtin.shell: /usr/local/bin/k3s-killall.sh
+
+- name: Make sure a service k3s is stopped
+  become: true
+  ansible.builtin.systemd_service:
+    state: stopped
+    name: k3s
+
+- name: Update and upgrade apt packages
+  become: true
+  apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400 #One day
+
+- name: Upgrade k3s
+  ansible.builtin.shell: curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=latest sh -s -
+  args:
+    executable: /bin/bash
+  register: output
+
+- ansible.builtin.debug:
+    var: output
+
+- name: Make sure a service k3s is started
+  become: true
+  ansible.builtin.systemd_service:
+    state: started
+    name: k3s
+
+- ansible.builtin.debug:
+    var: output
+
+- name: get uptime of host
+  ansible.builtin.command: uptime
+  register: uptime
+  changed_when: false
+
+- ansible.builtin.debug:
+    var: uptime.stdout
